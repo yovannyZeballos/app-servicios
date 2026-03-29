@@ -1,0 +1,885 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "App Servicios API",
+    "description": "Colección completa para probar la API de registro de pagos de servicios mensuales.\n\n## Flujo recomendado\n1. Crear un Concepto\n2. Crear un Cliente\n3. Crear un Servicio (vincula cliente + concepto)\n4. Crear un Periodo\n5. Generar Pagos del Periodo\n6. Registrar Pago (pagar)\n7. Cerrar Periodo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",     "value": "http://localhost:3000",  "type": "string" },
+    { "key": "conceptoId",  "value": "1",                      "type": "string" },
+    { "key": "clienteId",   "value": "1",                      "type": "string" },
+    { "key": "servicioId",  "value": "1",                      "type": "string" },
+    { "key": "periodoId",   "value": "1",                      "type": "string" },
+    { "key": "pagoId",      "value": "1",                      "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "00 - Health Check",
+      "item": [
+        {
+          "name": "GET Health",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "01 - Conceptos",
+      "item": [
+        {
+          "name": "GET Listar conceptos",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/conceptos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conceptos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar conceptos activos",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/conceptos?activo=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conceptos"],
+              "query": [{ "key": "activo", "value": "true" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Obtener concepto por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/conceptos/{{conceptoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conceptos", "{{conceptoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Crear concepto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('conceptoId', json.data.id);",
+                  "  console.log('conceptoId guardado:', json.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Internet Fibra\",\n  \"descripcion\": \"Servicio de internet por fibra óptica\",\n  \"monto_base\": 75.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conceptos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conceptos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Actualizar concepto",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Internet Fibra Óptica\",\n  \"monto_base\": 85.00,\n  \"activo\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conceptos/{{conceptoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conceptos", "{{conceptoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Desactivar concepto",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/conceptos/{{conceptoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conceptos", "{{conceptoId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "02 - Clientes",
+      "item": [
+        {
+          "name": "GET Listar clientes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar clientes activos",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes?activo=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes"],
+              "query": [{ "key": "activo", "value": "true" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Obtener cliente por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/{{clienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes", "{{clienteId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Obtener cliente con servicios",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/{{clienteId}}?servicios=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes", "{{clienteId}}"],
+              "query": [{ "key": "servicios", "value": "true" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Crear cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('clienteId', json.data.id);",
+                  "  console.log('clienteId guardado:', json.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Rodríguez\",\n  \"email\": \"ana.rodriguez@email.com\",\n  \"telefono\": \"555-2001\",\n  \"direccion\": \"Av. Libertad 456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Actualizar cliente",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"555-9999\",\n  \"direccion\": \"Av. Nueva 789\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/{{clienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes", "{{clienteId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Desactivar cliente",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/{{clienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes", "{{clienteId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "03 - Servicios",
+      "item": [
+        {
+          "name": "GET Listar servicios",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar servicios por cliente",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios?cliente_id={{clienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"],
+              "query": [{ "key": "cliente_id", "value": "{{clienteId}}" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar servicios por concepto",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios?concepto_id={{conceptoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"],
+              "query": [{ "key": "concepto_id", "value": "{{conceptoId}}" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar servicios activos",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios?activo=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"],
+              "query": [{ "key": "activo", "value": "true" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Obtener servicio por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios/{{servicioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios", "{{servicioId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Crear servicio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('servicioId', json.data.id);",
+                  "  console.log('servicioId guardado:', json.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente_id\": {{clienteId}},\n  \"concepto_id\": {{conceptoId}},\n  \"monto\": 75.00,\n  \"fecha_inicio\": \"2026-01-01\",\n  \"observaciones\": \"Contrato inicial\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Actualizar servicio",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monto\": 80.00,\n  \"observaciones\": \"Ajuste de tarifa\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios/{{servicioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios", "{{servicioId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Desactivar servicio",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/servicios/{{servicioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "servicios", "{{servicioId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "04 - Periodos",
+      "item": [
+        {
+          "name": "GET Listar periodos",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/periodos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "periodos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar periodos abiertos",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/periodos?estado=abierto",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "periodos"],
+              "query": [{ "key": "estado", "value": "abierto" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar periodos cerrados",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/periodos?estado=cerrado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "periodos"],
+              "query": [{ "key": "estado", "value": "cerrado" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Obtener periodo por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/periodos/{{periodoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "periodos", "{{periodoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Crear periodo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('periodoId', json.data.id);",
+                  "  console.log('periodoId guardado:', json.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"anio\": 2026,\n  \"mes\": 4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/periodos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "periodos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Generar pagos del periodo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "console.log('Pagos generados:', json.generados);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/periodos/{{periodoId}}/generar-pagos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "periodos", "{{periodoId}}", "generar-pagos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Cerrar periodo",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/periodos/{{periodoId}}/cerrar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "periodos", "{{periodoId}}", "cerrar"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "05 - Pagos",
+      "item": [
+        {
+          "name": "GET Listar todos los pagos",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar pagos pendientes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/pendientes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos", "pendientes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar pagos por estado",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos?estado=pendiente",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos"],
+              "query": [{ "key": "estado", "value": "pendiente", "description": "pendiente | pagado | vencido" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar pagos por periodo",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos?periodo_id={{periodoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos"],
+              "query": [{ "key": "periodo_id", "value": "{{periodoId}}" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar pagos por cliente",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/cliente/{{clienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos", "cliente", "{{clienteId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Obtener pago por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/{{pagoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos", "{{pagoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Crear pago manual (pendiente)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('pagoId', json.data.id);",
+                  "  console.log('pagoId guardado:', json.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"servicio_id\": {{servicioId}},\n  \"periodo_id\": {{periodoId}},\n  \"observaciones\": \"Pago manual registrado\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Registrar pago (pagar)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha_pago\": \"2026-03-28\",\n  \"referencia\": \"TXN-2026-001\",\n  \"observaciones\": \"Pago recibido en efectivo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/{{pagoId}}/pagar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos", "{{pagoId}}", "pagar"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "06 - Flujo Mensual Completo",
+      "description": "Ejecutar en orden para probar el flujo completo de un mes",
+      "item": [
+        {
+          "name": "1. Crear concepto (Agua)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('conceptoId', pm.response.json().data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Agua Potable\",\n  \"descripcion\": \"Servicio de agua potable mensual\",\n  \"monto_base\": 30.00\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/conceptos", "host": ["{{baseUrl}}"], "path": ["api", "conceptos"] }
+          },
+          "response": []
+        },
+        {
+          "name": "2. Crear cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('clienteId', pm.response.json().data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Pedro\",\n  \"apellido\": \"Martínez\",\n  \"email\": \"pedro.martinez@test.com\",\n  \"telefono\": \"555-3001\",\n  \"direccion\": \"Jr. Las Flores 321\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/clientes", "host": ["{{baseUrl}}"], "path": ["api", "clientes"] }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Contratar servicio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('servicioId', pm.response.json().data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente_id\": {{clienteId}},\n  \"concepto_id\": {{conceptoId}},\n  \"fecha_inicio\": \"2026-01-01\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/servicios", "host": ["{{baseUrl}}"], "path": ["api", "servicios"] }
+          },
+          "response": []
+        },
+        {
+          "name": "4. Crear periodo Abril 2026",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('periodoId', pm.response.json().data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"anio\": 2026,\n  \"mes\": 4\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/periodos", "host": ["{{baseUrl}}"], "path": ["api", "periodos"] }
+          },
+          "response": []
+        },
+        {
+          "name": "5. Generar pagos del periodo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.length > 0) {",
+                  "    pm.collectionVariables.set('pagoId', json.data[0].id);",
+                  "    console.log('pagoId guardado:', json.data[0].id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/periodos/{{periodoId}}/generar-pagos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "periodos", "{{periodoId}}", "generar-pagos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6. Ver pagos pendientes",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/pagos/pendientes", "host": ["{{baseUrl}}"], "path": ["api", "pagos", "pendientes"] }
+          },
+          "response": []
+        },
+        {
+          "name": "7. Registrar pago",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha_pago\": \"2026-04-10\",\n  \"referencia\": \"TXN-ABR-001\",\n  \"observaciones\": \"Pago mes de Abril\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/{{pagoId}}/pagar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos", "{{pagoId}}", "pagar"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "8. Cerrar periodo",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/periodos/{{periodoId}}/cerrar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "periodos", "{{periodoId}}", "cerrar"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "07 - Validaciones (errores esperados)",
+      "description": "Casos para verificar que las validaciones funcionan correctamente",
+      "item": [
+        {
+          "name": "POST Concepto sin nombre (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Sin nombre\",\n  \"monto_base\": 10\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/conceptos", "host": ["{{baseUrl}}"], "path": ["api", "conceptos"] }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Cliente con email inválido (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Test\",\n  \"apellido\": \"Test\",\n  \"email\": \"no-es-un-email\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/clientes", "host": ["{{baseUrl}}"], "path": ["api", "clientes"] }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Concepto inexistente (404)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/conceptos/99999", "host": ["{{baseUrl}}"], "path": ["api", "conceptos", "99999"] }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Periodo mes inválido (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"anio\": 2026,\n  \"mes\": 13\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/periodos", "host": ["{{baseUrl}}"], "path": ["api", "periodos"] }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Pagar un pago ya pagado (422)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha_pago\": \"2026-04-15\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/{{pagoId}}/pagar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos", "{{pagoId}}", "pagar"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+
+  ]
+}
