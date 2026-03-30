@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { Plus, Pencil, Trash2, Filter, CheckCircle, Zap } from 'lucide-react'
 import { pagosApi }     from '../api/pagos.js'
 import { conceptosApi } from '../api/conceptos.js'
+import { tiposPagoApi } from '../api/tipos_pago.js'
 import Table          from '../components/ui/Table.jsx'
 import Modal          from '../components/ui/Modal.jsx'
 import ConfirmDialog  from '../components/ui/ConfirmDialog.jsx'
@@ -26,6 +27,7 @@ const hoy   = new Date().toISOString().slice(0, 10)
 // ── Schemas ──────────────────────────────────────────────────
 const schema = z.object({
   concepto_id:   z.coerce.number({ invalid_type_error: 'Selecciona un concepto' }).int().min(1, 'Requerido'),
+  tipo_pago_id:  z.coerce.number().int().positive().optional().nullable(),
   anio:          z.coerce.number().int().min(2000).max(2100),
   mes:           z.coerce.number().int().min(1).max(12),
   monto:         z.coerce.number({ invalid_type_error: 'Debe ser un número' }).positive('Debe ser > 0'),
@@ -57,19 +59,21 @@ export default function Pagos() {
   const [generarMes,  setGenerarMes ] = useState(String(new Date().getMonth() + 1))
 
   // ── Filter state ─────────────────────────────────────────
-  const [filtroEstado,   setFiltroEstado  ] = useState('')
-  const [filtroConcepto, setFiltroConcepto] = useState('')
-  const [filtroAnio,     setFiltroAnio    ] = useState('')
-  const [filtroMes,      setFiltroMes     ] = useState('')
+  const [filtroEstado,     setFiltroEstado    ] = useState('')
+  const [filtroConcepto,   setFiltroConcepto  ] = useState('')
+  const [filtroTipoPago,   setFiltroTipoPago  ] = useState('')
+  const [filtroAnio,       setFiltroAnio      ] = useState('')
+  const [filtroMes,        setFiltroMes       ] = useState('')
 
   // ── Queries ──────────────────────────────────────────────
   const { data: pagosData, isLoading } = useQuery({
-    queryKey: ['pagos', filtroEstado, filtroConcepto, filtroAnio, filtroMes],
+    queryKey: ['pagos', filtroEstado, filtroConcepto, filtroTipoPago, filtroAnio, filtroMes],
     queryFn: () => pagosApi.listar({
-      ...(filtroEstado   ? { estado:      filtroEstado   } : {}),
-      ...(filtroConcepto ? { concepto_id: filtroConcepto } : {}),
-      ...(filtroAnio     ? { anio:        filtroAnio     } : {}),
-      ...(filtroMes      ? { mes:         filtroMes      } : {}),
+      ...(filtroEstado    ? { estado:       filtroEstado    } : {}),
+      ...(filtroConcepto  ? { concepto_id:  filtroConcepto  } : {}),
+      ...(filtroTipoPago  ? { tipo_pago_id: filtroTipoPago  } : {}),
+      ...(filtroAnio      ? { anio:         filtroAnio      } : {}),
+      ...(filtroMes       ? { mes:          filtroMes       } : {}),
     }),
   })
 
@@ -78,8 +82,14 @@ export default function Pagos() {
     queryFn:  () => conceptosApi.listar({ activo: true }),
   })
 
-  const pagos    = pagosData?.data?.data    ?? []
+  const { data: tiposPagoData } = useQuery({
+    queryKey: ['tipos-pago-activos'],
+    queryFn:  () => tiposPagoApi.listar({ activo: true }),
+  })
+
+  const pagos     = pagosData?.data?.data    ?? []
   const conceptos = conceptosData?.data?.data ?? []
+  const tiposPago = tiposPagoData?.data?.data ?? []
 
   // ── Create/Edit form ─────────────────────────────────────
   const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm({
@@ -87,6 +97,7 @@ export default function Pagos() {
     values: editItem
       ? {
           concepto_id:   editItem.concepto_id,
+          tipo_pago_id:  editItem.tipo_pago_id ?? '',
           anio:          editItem.anio,
           mes:           editItem.mes,
           monto:         editItem.monto,
@@ -96,7 +107,7 @@ export default function Pagos() {
           observaciones: editItem.observaciones ?? '',
         }
       : {
-          concepto_id: '', anio: anioActual, mes: new Date().getMonth() + 1,
+          concepto_id: '', tipo_pago_id: '', anio: anioActual, mes: new Date().getMonth() + 1,
           monto: '', es_pendiente: false, fecha_pago: hoy,
           referencia: '', observaciones: '',
         },
@@ -114,13 +125,14 @@ export default function Pagos() {
   const openCreate = () => { setEditItem(null); setModalOpen(true) }
   const openEdit   = (r) => { setEditItem(r);   setModalOpen(true) }
   const openPagar  = (r) => { resetPagar({ fecha_pago: hoy, referencia: '' }); setPagarItem(r) }
-  const limpiar    = () => { setFiltroEstado(''); setFiltroConcepto(''); setFiltroAnio(''); setFiltroMes('') }
+  const limpiar = () => { setFiltroEstado(''); setFiltroConcepto(''); setFiltroTipoPago(''); setFiltroAnio(''); setFiltroMes('') }
 
   // ── Mutations ────────────────────────────────────────────
   const saveMutation = useMutation({
     mutationFn: (values) => {
       const payload = {
         concepto_id:   values.concepto_id,
+        tipo_pago_id:  values.tipo_pago_id || null,
         anio:          values.anio,
         mes:           values.mes,
         monto:         values.monto,
@@ -169,8 +181,21 @@ export default function Pagos() {
 
   // ── Table columns ────────────────────────────────────────
   const columns = [
-    { key: 'concepto', header: 'Concepto',   render: (r) => r.concepto_nombre },
-    { key: 'periodo',  header: 'Período',    render: (r) => `${MESES[r.mes - 1]} ${r.anio}` },
+    { key: 'concepto',   header: 'Concepto',      render: (r) => r.concepto_nombre },
+    { key: 'dato_pago',  header: 'Dato de pago',
+      render: (r) => r.campo_referencia
+        ? (
+          <div className="text-sm">
+            <span className="text-gray-400 text-xs block">{r.campo_referencia}</span>
+            {r.referencia_valor_cuenta
+              ? <span className="font-medium">{r.referencia_valor_cuenta}</span>
+              : <span className="text-amber-500 text-xs">Sin dato</span>}
+          </div>
+        )
+        : <span className="text-gray-400 text-xs">N/A</span>
+    },
+    { key: 'tipo_pago',  header: 'Tipo de pago',  render: (r) => r.tipo_pago_nombre ?? <span className="text-gray-400 text-xs">Sin tipo</span> },
+    { key: 'periodo',    header: 'Período',       render: (r) => `${MESES[r.mes - 1]} ${r.anio}` },
     { key: 'monto',    header: 'Monto',      render: (r) => `S/ ${Number(r.monto).toFixed(2)}` },
     { key: 'estado',   header: 'Estado',     render: (r) => <Badge value={r.estado} /> },
     { key: 'fecha',    header: 'F. Pago',       render: (r) => r.fecha_pago?.slice(0, 10) ?? '—' },
@@ -243,6 +268,13 @@ export default function Pagos() {
           </select>
         </div>
         <div className="flex flex-col">
+          <label className="label">Tipo de pago</label>
+          <select className="input !w-44" value={filtroTipoPago} onChange={(e) => setFiltroTipoPago(e.target.value)}>
+            <option value="">Todos</option>
+            {tiposPago.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+          </select>
+        </div>
+        <div className="flex flex-col">
           <label className="label">Concepto</label>
           <select className="input !w-44" value={filtroConcepto} onChange={(e) => setFiltroConcepto(e.target.value)}>
             <option value="">Todos</option>
@@ -263,7 +295,7 @@ export default function Pagos() {
             {MESES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
           </select>
         </div>
-        {(filtroEstado || filtroConcepto || filtroAnio || filtroMes) && (
+        {(filtroEstado || filtroConcepto || filtroTipoPago || filtroAnio || filtroMes) && (
           <button className="btn-secondary" onClick={limpiar}>Limpiar</button>
         )}
       </div>
@@ -283,6 +315,13 @@ export default function Pagos() {
             <Select {...register('concepto_id')} error={errors.concepto_id}>
               <option value="">Selecciona un servicio</option>
               {conceptos.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+            </Select>
+          </FormField>
+
+          <FormField label="Tipo de pago" error={errors.tipo_pago_id?.message}>
+            <Select {...register('tipo_pago_id')} error={errors.tipo_pago_id}>
+              <option value="">— Sin categoría —</option>
+              {tiposPago.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
             </Select>
           </FormField>
 

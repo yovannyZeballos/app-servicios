@@ -26,6 +26,27 @@ async function saveRefreshToken(usuarioId, token) {
 
 export const AuthController = {
 
+  /** POST /api/auth/register */
+  async register(req, res, next) {
+    try {
+      const { nombre, email, password } = req.body;
+
+      if (await UsuarioModel.existeEmail(email)) {
+        return res.status(409).json({ ok: false, mensaje: 'El email ya está registrado' });
+      }
+
+      const password_hash = await bcrypt.hash(password, 12);
+      const usuario = await UsuarioModel.create({ nombre, email, password_hash, rol: 'principal', principal_id: null });
+
+      const payload     = { id: usuario.id, email: usuario.email, nombre: usuario.nombre, rol: usuario.rol, principal_id: null };
+      const accessToken = jwt.sign(payload, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
+      const refreshToken = generateRefreshToken();
+      await saveRefreshToken(usuario.id, refreshToken);
+
+      res.status(201).json({ ok: true, accessToken, refreshToken, usuario: payload });
+    } catch (err) { next(err); }
+  },
+
   /** POST /api/auth/login */
   async login(req, res, next) {
     try {
@@ -41,7 +62,7 @@ export const AuthController = {
         return res.status(401).json({ ok: false, mensaje: 'Credenciales inválidas' });
       }
 
-      const payload      = { id: usuario.id, email: usuario.email, nombre: usuario.nombre, rol: usuario.rol };
+      const payload      = { id: usuario.id, email: usuario.email, nombre: usuario.nombre, rol: usuario.rol, principal_id: usuario.principal_id ?? null };
       const accessToken  = jwt.sign(payload, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
       const refreshToken = generateRefreshToken();
       await saveRefreshToken(usuario.id, refreshToken);
@@ -72,7 +93,7 @@ export const AuthController = {
         return res.status(401).json({ ok: false, mensaje: 'Usuario inactivo' });
       }
 
-      const payload     = { id: usuario.id, email: usuario.email, nombre: usuario.nombre, rol: usuario.rol };
+      const payload     = { id: usuario.id, email: usuario.email, nombre: usuario.nombre, rol: usuario.rol, principal_id: usuario.principal_id ?? null };
       const accessToken = jwt.sign(payload, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
 
       res.json({ ok: true, accessToken });
@@ -94,5 +115,23 @@ export const AuthController = {
   /** GET /api/auth/me  (requiere token) */
   async me(req, res) {
     res.json({ ok: true, usuario: req.user });
+  },
+
+  /** GET /api/auth/google/callback — llamado por Passport tras autenticación exitosa */
+  async googleCallback(req, res) {
+    try {
+      const usuario      = req.user;
+      const payload      = { id: usuario.id, email: usuario.email, nombre: usuario.nombre, rol: usuario.rol, principal_id: usuario.principal_id ?? null };
+      const accessToken  = jwt.sign(payload, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
+      const refreshToken = generateRefreshToken();
+      await saveRefreshToken(usuario.id, refreshToken);
+
+      // Redirigir al frontend con los tokens en la query string
+      const params = new URLSearchParams({ accessToken, refreshToken, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol, id: usuario.id });
+      if (usuario.principal_id) params.set('principal_id', usuario.principal_id);
+      res.redirect(`${config.frontendUrl}/auth/callback?${params.toString()}`);
+    } catch (err) {
+      res.redirect(`${config.frontendUrl}/login?error=oauth`);
+    }
   },
 };

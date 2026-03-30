@@ -18,13 +18,11 @@ const schemaCrear = z.object({
   nombre:   z.string().min(1, 'Requerido').max(100),
   email:    z.string().email('Email inválido'),
   password: z.string().min(6, 'Mínimo 6 caracteres'),
-  rol:      z.enum(['admin', 'user']),
 })
 const schemaEditar = z.object({
   nombre:   z.string().min(1, 'Requerido').max(100),
   email:    z.string().email('Email inválido'),
   password: z.string().min(6, 'Mínimo 6 caracteres').optional().or(z.literal('')),
-  rol:      z.enum(['admin', 'user']),
   activo:   z.boolean().optional(),
 })
 
@@ -42,11 +40,11 @@ export default function Usuarios() {
   const usuarios = data?.data?.data ?? []
 
   const schema = editItem ? schemaEditar : schemaCrear
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     values: editItem
-      ? { nombre: editItem.nombre, email: editItem.email, password: '', rol: editItem.rol, activo: editItem.activo }
-      : { nombre: '', email: '', password: '', rol: 'user' },
+      ? { nombre: editItem.nombre, email: editItem.email, password: '', activo: editItem.activo }
+      : { nombre: '', email: '', password: '' },
   })
 
   const openCreate = () => { setEditItem(null); setModalOpen(true) }
@@ -55,7 +53,6 @@ export default function Usuarios() {
   const saveMutation = useMutation({
     mutationFn: (values) => {
       const payload = { ...values }
-      // If password is empty string during edit, remove from payload
       if (editItem && !payload.password) delete payload.password
       return editItem
         ? usuariosApi.actualizar(editItem.id, payload)
@@ -80,11 +77,6 @@ export default function Usuarios() {
   const columns = [
     { key: 'nombre', header: 'Nombre' },
     { key: 'email',  header: 'Email' },
-    { key: 'rol',    header: 'Rol',    render: (r) => (
-      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${r.rol === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
-        {r.rol}
-      </span>
-    )},
     { key: 'activo', header: 'Estado', render: (r) => <Badge value={r.activo} /> },
     {
       key: 'acciones', header: 'Acciones',
@@ -132,12 +124,6 @@ export default function Usuarios() {
           </FormField>
           <FormField label={editItem ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña *'} error={errors.password?.message}>
             <Input {...register('password')} type="password" placeholder="••••••••" error={errors.password} />
-          </FormField>
-          <FormField label="Rol *" error={errors.rol?.message}>
-            <Select {...register('rol')} error={errors.rol}>
-              <option value="user">Usuario</option>
-              <option value="admin">Administrador</option>
-            </Select>
           </FormField>
           {editItem && (
             <FormField label="Estado" error={errors.activo?.message}>

@@ -14,12 +14,14 @@ const validarId = [param('id').isInt({ min: 1 }), validate];
 const reglasCrear = [
   body('concepto_id').isInt({ min: 1 }).withMessage('concepto_id requerido'),
   body('monto_referencia').isFloat({ gt: 0 }).withMessage('monto_referencia debe ser mayor a 0'),
+  body('referencia_valor').optional().trim().isLength({ max: 500 }),
   validate,
 ];
 
 const reglasActualizar = [
   param('id').isInt({ min: 1 }),
   body('monto_referencia').optional().isFloat({ gt: 0 }),
+  body('referencia_valor').optional().trim().isLength({ max: 500 }),
   body('activo').optional().isBoolean(),
   validate,
 ];

@@ -16,6 +16,7 @@ const validarId = [
 
 const reglasCrear = [
   body('concepto_id').isInt({ min: 1 }).withMessage('concepto_id requerido'),
+  body('tipo_pago_id').optional({ nullable: true }).isInt({ min: 1 }),
   body('anio').isInt({ min: 2000, max: 2100 }).withMessage('Año inválido'),
   body('mes').isInt({ min: 1, max: 12 }).withMessage('Mes inválido (1-12)'),
   body('monto').isFloat({ gt: 0 }).withMessage('monto debe ser > 0'),
@@ -29,6 +30,7 @@ const reglasCrear = [
 const reglasActualizar = [
   param('id').isInt({ min: 1 }),
   body('concepto_id').optional().isInt({ min: 1 }),
+  body('tipo_pago_id').optional({ nullable: true }).isInt({ min: 1 }),
   body('anio').optional().isInt({ min: 2000, max: 2100 }),
   body('mes').optional().isInt({ min: 1, max: 12 }),
   body('monto').optional().isFloat({ gt: 0 }),

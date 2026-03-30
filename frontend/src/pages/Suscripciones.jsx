@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { Plus, Pencil, Trash2, Zap } from 'lucide-react'
 import { suscripcionesApi } from '../api/suscripciones.js'
 import { conceptosApi }     from '../api/conceptos.js'
+import { tiposPagoApi }     from '../api/tipos_pago.js'
 import Table from '../components/ui/Table.jsx'
 import Modal from '../components/ui/Modal.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
@@ -14,13 +15,22 @@ import Badge from '../components/ui/Badge.jsx'
 import Spinner from '../components/ui/Spinner.jsx'
 import { FormField, Input, Select } from '../components/ui/Form.jsx'
 
+const tipoPagoSchema = z.preprocess(
+  (v) => (v === '' || v == null ? null : Number(v)),
+  z.number().int().positive().nullable().optional()
+)
+
 const schemaCrear = z.object({
   concepto_id:      z.coerce.number({ invalid_type_error: 'Selecciona un servicio' }).int().min(1, 'Requerido'),
+  tipo_pago_id:     tipoPagoSchema,
   monto_referencia: z.coerce.number({ invalid_type_error: 'Debe ser un número' }).positive('Debe ser > 0'),
+  referencia_valor: z.string().max(500).optional(),
 })
 
 const schemaEditar = z.object({
+  tipo_pago_id:     tipoPagoSchema,
   monto_referencia: z.coerce.number({ invalid_type_error: 'Debe ser un número' }).positive('Debe ser > 0'),
+  referencia_valor: z.string().max(500).optional(),
   activo:           z.boolean().optional(),
 })
 
@@ -38,18 +48,28 @@ export default function Suscripciones() {
     queryKey: ['conceptos-activos'],
     queryFn:  () => conceptosApi.listar({ activo: true }),
   })
+  const { data: tiposPagoData } = useQuery({
+    queryKey: ['tipos-pago-activos'],
+    queryFn:  () => tiposPagoApi.listar({ activo: true }),
+  })
 
   const suscripciones = data?.data?.data         ?? []
   const conceptos     = conceptosData?.data?.data ?? []
+  const tiposPago     = tiposPagoData?.data?.data ?? []
 
   const schema = editItem ? schemaEditar : schemaCrear
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     values: editItem
-      ? { monto_referencia: editItem.monto_referencia, activo: editItem.activo }
-      : { concepto_id: '', monto_referencia: '' },
+      ? { tipo_pago_id: editItem.tipo_pago_id ?? '', monto_referencia: editItem.monto_referencia, referencia_valor: editItem.referencia_valor ?? '', activo: editItem.activo }
+      : { concepto_id: '', tipo_pago_id: '', monto_referencia: '', referencia_valor: '' },
   })
+
+  // Concepto seleccionado actualmente (para mostrar campo_referencia)
+  const conceptoIdWatch = watch('concepto_id')
+  const conceptoSeleccionado = conceptos.find((c) => c.id === Number(conceptoIdWatch))
+  const campoReferencia = editItem ? editItem.campo_referencia : conceptoSeleccionado?.campo_referencia
 
   const openCreate = () => { setEditItem(null); setModalOpen(true) }
   const openEdit   = (item) => { setEditItem(item); setModalOpen(true) }
@@ -75,9 +95,15 @@ export default function Suscripciones() {
   })
 
   const columns = [
-    { key: 'concepto', header: 'Servicio',           render: (r) => r.concepto_nombre },
-    { key: 'monto',    header: 'Monto referencia',   render: (r) => `S/ ${Number(r.monto_referencia).toFixed(2)}` },
-    { key: 'activo',   header: 'Estado',             render: (r) => <Badge value={r.activo} /> },
+    { key: 'concepto',          header: 'Servicio',          render: (r) => r.concepto_nombre },
+    { key: 'referencia_valor',  header: 'Dato de pago',
+      render: (r) => r.campo_referencia
+        ? <span title={r.campo_referencia} className="text-sm">{r.referencia_valor ?? <span className="text-amber-500 text-xs">Pendiente</span>}</span>
+        : <span className="text-gray-400 text-xs">N/A</span>
+    },
+    { key: 'tipo_pago',  header: 'Tipo de pago',      render: (r) => r.tipo_pago_nombre ?? <span className="text-gray-400 text-xs">Sin tipo</span> },
+    { key: 'monto',      header: 'Monto referencia',  render: (r) => `S/ ${Number(r.monto_referencia).toFixed(2)}` },
+    { key: 'activo',     header: 'Estado',            render: (r) => <Badge value={r.activo} /> },
     {
       key: 'acciones', header: 'Acciones',
       render: (r) => (
@@ -148,6 +174,14 @@ export default function Suscripciones() {
               <p className="text-xs text-gray-500 mt-0.5">Servicio mensual</p>
             </div>
           )}
+          <FormField label="Tipo de pago" error={errors.tipo_pago_id?.message}>
+            <Select {...register('tipo_pago_id')} error={errors.tipo_pago_id}>
+              <option value="">— Sin categoría —</option>
+              {tiposPago.map((t) => (
+                <option key={t.id} value={t.id}>{t.nombre}</option>
+              ))}
+            </Select>
+          </FormField>
           <FormField label="Monto de referencia (S/) *" error={errors.monto_referencia?.message}>
             <Input
               {...register('monto_referencia')}
@@ -156,6 +190,15 @@ export default function Suscripciones() {
               error={errors.monto_referencia}
             />
           </FormField>
+          {campoReferencia && (
+            <FormField label={`${campoReferencia} *`} error={errors.referencia_valor?.message}>
+              <Input
+                {...register('referencia_valor')}
+                placeholder={`Ingresa ${campoReferencia.toLowerCase()}`}
+                error={errors.referencia_valor}
+              />
+            </FormField>
+          )}
           {editItem && (
             <FormField label="Estado" error={errors.activo?.message}>
               <Select {...register('activo', { setValueAs: (v) => v === 'true' })}>

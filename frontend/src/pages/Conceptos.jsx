@@ -14,8 +14,9 @@ import Spinner from '../components/ui/Spinner.jsx'
 import { FormField, Input, Textarea } from '../components/ui/Form.jsx'
 
 const schema = z.object({
-  nombre:      z.string().min(1, 'Requerido').max(100),
-  descripcion: z.string().max(500).optional(),
+  nombre:           z.string().min(1, 'Requerido').max(100),
+  descripcion:      z.string().max(500).optional(),
+  campo_referencia: z.string().max(200).optional(),
 })
 
 export default function Conceptos() {
@@ -33,8 +34,8 @@ export default function Conceptos() {
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     values: editItem
-      ? { nombre: editItem.nombre, descripcion: editItem.descripcion ?? '' }
-      : { nombre: '', descripcion: '' },
+      ? { nombre: editItem.nombre, descripcion: editItem.descripcion ?? '', campo_referencia: editItem.campo_referencia ?? '' }
+      : { nombre: '', descripcion: '', campo_referencia: '' },
   })
 
   const openCreate = () => { setEditItem(null); setModalOpen(true) }
@@ -61,9 +62,10 @@ export default function Conceptos() {
   })
 
   const columns = [
-    { key: 'nombre',      header: 'Nombre' },
-    { key: 'descripcion', header: 'Descripción', render: (r) => r.descripcion ?? '—' },
-    { key: 'activo',      header: 'Estado',     render: (r) => <Badge value={r.activo} /> },
+    { key: 'nombre',           header: 'Nombre' },
+    { key: 'descripcion',      header: 'Descripción',        render: (r) => r.descripcion      ?? '—' },
+    { key: 'campo_referencia', header: 'Dato para pagar',    render: (r) => r.campo_referencia ?? <span className="text-gray-400 text-xs">No requerido</span> },
+    { key: 'activo',           header: 'Estado',             render: (r) => <Badge value={r.activo} /> },
     {
       key: 'acciones', header: 'Acciones',
       render: (r) => (
@@ -105,6 +107,13 @@ export default function Conceptos() {
           </FormField>
           <FormField label="Descripción" error={errors.descripcion?.message}>
             <Textarea {...register('descripcion')} placeholder="Descripción opcional" />
+          </FormField>
+          <FormField
+            label="Dato requerido para pagar"
+            error={errors.campo_referencia?.message}
+            hint="Etiqueta del dato que necesitas para realizar el pago (ej: Código de usuario, Número de cuenta, Número de celular)"
+          >
+            <Input {...register('campo_referencia')} placeholder="Ej: Código de usuario" error={errors.campo_referencia} />
           </FormField>
           <div className="flex justify-end gap-3 mt-2">
             <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)}>Cancelar</button>

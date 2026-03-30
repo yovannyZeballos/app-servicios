@@ -17,10 +17,24 @@ export function authMiddleware(req, res, next) {
   }
 }
 
-/** Solo permite acceso a usuarios con rol 'admin' */
-export function adminMiddleware(req, res, next) {
-  if (req.user?.rol !== 'admin') {
-    return res.status(403).json({ ok: false, mensaje: 'Acceso restringido a administradores' });
+/** Permite acceso solo a 'principal' */
+export function principalMiddleware(req, res, next) {
+  if (req.user?.rol !== 'principal') {
+    return res.status(403).json({ ok: false, mensaje: 'Acceso restringido al usuario principal' });
   }
   next();
+}
+
+// Alias para compatibilidad con rutas existentes
+export const principalOrAdminMiddleware = principalMiddleware;
+export const adminMiddleware = principalMiddleware;
+
+/**
+ * Devuelve el ID del usuario principal según el rol:
+ * - principal → su propio ID
+ * - user      → su principal_id
+ */
+export function getPrincipalId(user) {
+  if (user.rol === 'principal') return user.id;
+  return user.principal_id ?? null;
 }

@@ -6,6 +6,7 @@ import {
   Zap,
   BarChart3,
   Users,
+  Layers,
   X,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -19,7 +20,12 @@ export default function Sidebar({ open, onClose }) {
     { to: '/pagos',     label: 'Mis Pagos',         Icon: CreditCard },
     { to: '/plantilla', label: 'Plantilla mensual', Icon: Zap },
     { to: '/reporte',   label: 'Reporte',           Icon: BarChart3 },
-    ...(user?.rol === 'admin' ? [{ to: '/usuarios', label: 'Usuarios', Icon: Users }] : []),
+    ...(user?.rol === 'principal'
+      ? [{ to: '/tipos-pago', label: 'Tipos de Pago', Icon: Layers }]
+      : []),
+    ...(user?.rol === 'principal'
+      ? [{ to: '/usuarios', label: 'Usuarios', Icon: Users }]
+      : []),
   ]
 
   return (

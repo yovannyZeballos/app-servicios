@@ -1,28 +1,39 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { authApi } from '../api/auth.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { FormField, Input } from '../components/ui/Form.jsx'
 import Spinner from '../components/ui/Spinner.jsx'
 
 const schema = z.object({
-  email:    z.string().email('Email inválido'),
-  password: z.string().min(1, 'Requerido'),
+  nombre:           z.string().min(1, 'Requerido').max(100),
+  email:            z.string().email('Email inválido'),
+  password:         z.string().min(6, 'Mínimo 6 caracteres'),
+  confirmar:        z.string().min(1, 'Requerido'),
+}).refine((d) => d.password === d.confirmar, {
+  message: 'Las contraseñas no coinciden',
+  path: ['confirmar'],
 })
 
-export default function Login() {
-  const { login } = useAuth()
+export default function Register() {
+  const navigate      = useNavigate()
+  const { saveSession } = useAuth()
+
   const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
   })
 
-  const onSubmit = async (values) => {
+  const onSubmit = async ({ nombre, email, password }) => {
     try {
-      await login(values)
+      const res = await authApi.register({ nombre, email, password })
+      const { accessToken, refreshToken, usuario } = res.data
+      saveSession(accessToken, refreshToken, usuario)
+      navigate('/dashboard', { replace: true })
     } catch (err) {
-      const msg = err.response?.data?.mensaje ?? 'Error al iniciar sesión'
-      setError('password', { message: msg })
+      const msg = err.response?.data?.mensaje ?? 'Error al registrarse'
+      setError('email', { message: msg })
     }
   }
 
@@ -30,16 +41,25 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 to-indigo-700 flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">App Servicios</h1>
-          <p className="text-gray-500 text-sm mt-1">Gestión de pagos mensuales</p>
+          <h1 className="text-2xl font-bold text-gray-900">Crear cuenta</h1>
+          <p className="text-gray-500 text-sm mt-1">Registrate para comenzar</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <FormField label="Nombre completo" error={errors.nombre?.message}>
+            <Input
+              {...register('nombre')}
+              placeholder="Juan Pérez"
+              autoComplete="name"
+              error={errors.nombre}
+            />
+          </FormField>
+
           <FormField label="Correo electrónico" error={errors.email?.message}>
             <Input
               {...register('email')}
               type="email"
-              placeholder="admin@app.com"
+              placeholder="juan@ejemplo.com"
               autoComplete="email"
               error={errors.email}
             />
@@ -50,8 +70,18 @@ export default function Login() {
               {...register('password')}
               type="password"
               placeholder="••••••••"
-              autoComplete="current-password"
+              autoComplete="new-password"
               error={errors.password}
+            />
+          </FormField>
+
+          <FormField label="Confirmar contraseña" error={errors.confirmar?.message}>
+            <Input
+              {...register('confirmar')}
+              type="password"
+              placeholder="••••••••"
+              autoComplete="new-password"
+              error={errors.confirmar}
             />
           </FormField>
 
@@ -60,7 +90,7 @@ export default function Login() {
             className="btn-primary w-full justify-center mt-2"
             disabled={isSubmitting}
           >
-            {isSubmitting ? <><Spinner className="h-4 w-4" /> Ingresando…</> : 'Iniciar sesión'}
+            {isSubmitting ? <><Spinner className="h-4 w-4" /> Creando cuenta…</> : 'Registrarse'}
           </button>
         </form>
 
@@ -68,8 +98,8 @@ export default function Login() {
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-200" />
           </div>
-          <div className="relative flex justify-center text-xs text-gray-400 bg-white px-2">
-            <span className="bg-white px-2">o continuá con</span>
+          <div className="relative flex justify-center text-xs text-gray-400">
+            <span className="bg-white px-2">o registrate con</span>
           </div>
         </div>
 
@@ -87,9 +117,9 @@ export default function Login() {
         </a>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          ¿No tenés cuenta?{' '}
-          <Link to="/register" className="text-indigo-600 font-medium hover:underline">
-            Registrate
+          ¿Ya tenés cuenta?{' '}
+          <Link to="/login" className="text-indigo-600 font-medium hover:underline">
+            Iniciar sesión
           </Link>
         </p>
       </div>

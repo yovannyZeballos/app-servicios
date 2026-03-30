@@ -1,9 +1,10 @@
 import { forwardRef } from 'react'
 
-export function FormField({ label, error, children }) {
+export function FormField({ label, error, hint, children }) {
   return (
     <div className="mb-4">
       {label && <label className="label">{label}</label>}
+      {hint && <p className="mb-1 text-xs text-gray-500">{hint}</p>}
       {children}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>

@@ -28,4 +28,10 @@ export default {
   refreshToken: {
     expiresInDays: parseInt(process.env.REFRESH_TOKEN_EXPIRES_DAYS ?? '7', 10),
   },
+  google: {
+    clientId:     required('GOOGLE_CLIENT_ID'),
+    clientSecret: required('GOOGLE_CLIENT_SECRET'),
+    callbackUrl:  `${process.env.BACKEND_URL ?? 'http://localhost:3000'}/api/auth/google/callback`,
+  },
+  frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:5173',
 };

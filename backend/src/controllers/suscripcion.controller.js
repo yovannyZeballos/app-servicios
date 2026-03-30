@@ -14,10 +14,10 @@ export const SuscripcionController = {
   /** POST /api/suscripciones */
   async crear(req, res, next) {
     try {
-      const { concepto_id, monto_referencia } = req.body;
+      const { concepto_id, tipo_pago_id, monto_referencia, referencia_valor } = req.body;
       const usuario_id = req.user.id;
 
-      const s = await SuscripcionModel.create({ usuario_id, concepto_id, monto_referencia });
+      const s = await SuscripcionModel.create({ usuario_id, concepto_id, tipo_pago_id: tipo_pago_id ?? null, monto_referencia, referencia_valor: referencia_valor ?? null });
       res.status(201).json({ ok: true, data: s });
     } catch (err) { next(err); }
   },
@@ -29,12 +29,12 @@ export const SuscripcionController = {
       const s  = await SuscripcionModel.findById(id);
       if (!s) return res.status(404).json({ ok: false, mensaje: 'Suscripción no encontrada' });
 
-      if (s.usuario_id !== req.user.id && req.user.rol !== 'admin') {
+      if (s.usuario_id !== req.user.id) {
         return res.status(403).json({ ok: false, mensaje: 'Acceso denegado' });
       }
 
-      const { monto_referencia, activo } = req.body;
-      const updated = await SuscripcionModel.update(id, { monto_referencia, activo });
+      const { tipo_pago_id, monto_referencia, referencia_valor, activo } = req.body;
+      const updated = await SuscripcionModel.update(id, { tipo_pago_id, monto_referencia, referencia_valor, activo });
       res.json({ ok: true, data: updated });
     } catch (err) { next(err); }
   },
@@ -46,7 +46,7 @@ export const SuscripcionController = {
       const s  = await SuscripcionModel.findById(id);
       if (!s) return res.status(404).json({ ok: false, mensaje: 'Suscripción no encontrada' });
 
-      if (s.usuario_id !== req.user.id && req.user.rol !== 'admin') {
+      if (s.usuario_id !== req.user.id) {
         return res.status(403).json({ ok: false, mensaje: 'Acceso denegado' });
       }
 

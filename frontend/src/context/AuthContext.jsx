@@ -26,15 +26,19 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }, [])
 
-  const login = useCallback(async ({ email, password }) => {
-    const res = await authApi.login({ email, password })
-    const { accessToken, refreshToken, usuario } = res.data
+  const saveSession = useCallback((accessToken, refreshToken, usuario) => {
     localStorage.setItem('token',        accessToken)
     localStorage.setItem('refreshToken', refreshToken)
     localStorage.setItem('user',         JSON.stringify(usuario))
     setUser(usuario)
+  }, [])
+
+  const login = useCallback(async ({ email, password }) => {
+    const res = await authApi.login({ email, password })
+    const { accessToken, refreshToken, usuario } = res.data
+    saveSession(accessToken, refreshToken, usuario)
     navigate('/dashboard', { replace: true })
-  }, [navigate])
+  }, [navigate, saveSession])
 
   const logout = useCallback(async () => {
     const refreshToken = localStorage.getItem('refreshToken')
@@ -49,7 +53,7 @@ export function AuthProvider({ children }) {
   }, [navigate])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, saveSession }}>
       {children}
     </AuthContext.Provider>
   )
